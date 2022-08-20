@@ -165,17 +165,14 @@ class SignaturesFinder:
             note2: Note = notes[i + 1]
             interval = Interval(note1, note2).semitones
             durations = note2.duration.ordinal - note1.duration.ordinal
-            byte_index = i.to_bytes(10, 'big')
-            byte_interval = interval.to_bytes(10, 'big', signed=True)
-            byte_durations = durations.to_bytes(10, 'big', signed=True)
-            digits.append([byte_index, byte_interval, byte_durations])
+            digits.append((i, interval, durations))
         return digits
 
     def __recover_notes__(self, notes):
         result = []
         for i in range(0, len(notes)):
             note = notes[i]
-            index = int.from_bytes(note[0], 'big')
+            index = note[0]
             result.append(self.transposed_notes[index])
             if i == len(notes) - 1:
                 result.append(self.transposed_notes[index + 1])
