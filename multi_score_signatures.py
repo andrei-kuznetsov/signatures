@@ -2,7 +2,7 @@ import itertools
 
 import numpy as np
 
-from signatures_lsh import SignaturesFinder
+from find_signatures import SignaturesFinder
 
 
 class MultiScoreSignatures:
