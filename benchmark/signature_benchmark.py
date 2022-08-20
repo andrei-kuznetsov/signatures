@@ -8,7 +8,7 @@ class SignatureBenchmark:
         self.use_rhythmic = use_rhythmic
         self.show_logs = show_logs
 
-    def is_signature(self, logger, notes1, notes2):
+    def is_similar(self, logger, notes1, notes2):
         intervals1, directions1, durations1 = parse_ints_from_bytes(notes1)
         intervals2, directions2, durations2 = parse_ints_from_bytes(notes2)
         intervals_percent = test_correctness(intervals1, intervals2)

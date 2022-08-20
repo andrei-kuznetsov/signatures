@@ -124,7 +124,7 @@ class SignaturesFinder:
                         if key in notes_to_signature:
                             is_signature = notes_to_signature[key]
                         else:
-                            is_signature = benchmark.is_signature(self.logs_file, notes1, notes2)
+                            is_signature = benchmark.is_similar(self.logs_file, notes1, notes2)
                             notes_to_signature[key] = is_signature
                         if is_signature:
                             signature = SignatureEntry([Signature(notes1, [i, j + 1]), Signature(notes2, [k, m + 1])])
