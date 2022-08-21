@@ -1,13 +1,15 @@
+from collections import defaultdict
 
 
 class Signature:
-    def __init__(self, notes, index):
-        self.notes = notes
-        self.index = index
+    def __init__(self, canonical, variants):
+        self.canonical = canonical
+        self.variants = set(variants)
+        self.variants.add(canonical)
 
     def __eq__(self, o: object):
         if isinstance(o, Signature):
-            return self.notes == o.notes and self.index == o.index
+            return self.canonical == o.canonical
         else:
             return super().__eq__(o)
 
@@ -17,17 +19,15 @@ class Signature:
     def __repr__(self):
         return self.get_note_str()
 
-    def len(self):
-        return len(self.notes)
-
     def get_note_str(self):
-        return ', '.join(str(n) for n in self.notes) + ' with index [' + ', '.join(str(n) for n in self.index) + ']'
+        return ', '.join(str(n) for n in self.canonical) + f' ({len(self.variants)} variants)'
 
 
 class SignatureEntry:
 
-    def __init__(self, signatures):
-        self.signatures = signatures
+    def __init__(self, signature, entries):
+        self.signature = signature
+        self.entries = entries
 
     def __str__(self):
         return self.get_note_str()
@@ -37,9 +37,9 @@ class SignatureEntry:
 
     def __eq__(self, o: object):
         if isinstance(o, SignatureEntry):
-            return self.signatures[0] == o.signatures[0]
+            return self.signature.canonical == o.signature.canonical
         else:
             return super().__eq__(o)
 
     def get_note_str(self):
-        return 'Found signature with: ' + ', '.join(str(n) for n in self.signatures)
+        return f'{str(self.signature)}, {sum(len(self.entries))} entries'

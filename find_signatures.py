@@ -8,6 +8,7 @@ from music21.note import Note
 from music21.stream import Stream, Part, Measure
 
 from signature import Signature
+from signature import SignatureEntry
 from benchmark.signature_benchmark import SignatureBenchmark
 from notes_utils import *
 from profile_utils import profile
@@ -112,11 +113,13 @@ class SignaturesFinder:
         for key, values in groups.items():
             indexes = []
             for value in values:
-                indexes += all_subseq_map[value]
+                for start_idx in all_subseq_map[value]:
+                    indexes.append((start_idx, start_idx + len(value)))
 
             if self.min_signature_entries <= len(indexes) <= self.max_signature_entries:
-                signature = Signature(key, sorted(indexes))
-                result.append(signature)
+                signature = Signature(key, values)
+                sig_entry = SignatureEntry(signature, sorted(indexes))
+                result.append(sig_entry)
                 self.__log__(str(signature))
 
         self.__log__(f"Found {len(result)} signatures")
@@ -127,8 +130,8 @@ class SignaturesFinder:
         self.__log__(f"Total input length: {len(intervals)}")
         self.__log__(f"Input: {intervals}")
         self.__log__(f"Total unique subsequences "
-              f"(length [{self.min_interval_count}..{self.max_interval_count}]): {len(all_subseq_map)}, "
-              f"max possible: {sum(map(len, all_subseq_map.values()))}")
+                     f"(length [{self.min_interval_count}..{self.max_interval_count}]): {len(all_subseq_map)}, "
+                     f"max possible: {sum(map(len, all_subseq_map.values()))}")
         sizes = OrderedDict()
         for i in range(self.min_interval_count, self.max_interval_count + 1):
             sizes[i] = 0
@@ -174,13 +177,13 @@ class SignaturesFinder:
             digits.append((interval, durations))
         return digits
 
-    def highlight_signatures(self, signatures):
+    def highlight_signatures(self, sig_entries):
         notes = self.notes
-        for signature in signatures:
+        for sig_entry in sig_entries:
             color = '#' + ''.join(random.sample('0123456789ABCDEF', 6))
-            for offset in signature.index:
+            for start, end in sig_entry.entries:
                 overlaps = False
-                note_indexes = range(offset, offset + signature.len() + 1)
+                note_indexes = range(start, end + 1)
                 for i in note_indexes:
                     if notes[i].style.color:
                         self.__log__(f"Overlapping signatures at index {i}")
@@ -219,5 +222,5 @@ if __name__ == '__main__':
     # logging.getLogger('signature_benchmark').setLevel(logging.DEBUG)
 
     finder = SignaturesFinder(notes)
-    signatures = finder.run()
-    finder.highlight_signatures(signatures)
+    sig_entries = finder.run()
+    finder.highlight_signatures(sig_entries)
