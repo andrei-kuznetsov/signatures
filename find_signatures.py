@@ -179,11 +179,17 @@ class SignaturesFinder:
         for signature in signatures:
             color = '#' + ''.join(random.sample('0123456789ABCDEF', 6))
             for offset in signature.index:
-                for i in range(offset, offset + signature.len() + 1):
+                overlaps = False
+                note_indexes = range(offset, offset + signature.len() + 1)
+                for i in note_indexes:
                     if notes[i].style.color:
                         self.__log__(f"Overlapping signatures at index {i}")
+                        overlaps = True
                         break
-                    notes[i].style.color = color
+
+                if not overlaps:
+                    for i in note_indexes:
+                        notes[i].style.color = color
 
         part = Part(self.notes)
         part.show()
@@ -197,8 +203,6 @@ class SignaturesFinder:
 
         self.__log__('Time: ' + str(end_time - start_time))
         self.__log__('Found signatures: ' + str(len(signatures)))
-
-        self.highlight_signatures(signatures)
 
         return signatures
 
@@ -214,5 +218,6 @@ if __name__ == '__main__':
     # logging.basicConfig(filename='logs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     # logging.getLogger('signature_benchmark').setLevel(logging.DEBUG)
 
-    signatures = SignaturesFinder(notes)
-    print(signatures.run())
+    finder = SignaturesFinder(notes)
+    signatures = finder.run()
+    finder.highlight_signatures(signatures)
