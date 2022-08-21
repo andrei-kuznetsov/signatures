@@ -41,17 +41,17 @@ class SignaturesFinder:
                  max_signature_entries=10,
                  benchmark=SignatureBenchmark()):
         self.score = score
+        self.benchmark = benchmark
+        self.notes = self.__get_notes__(self.score)
+
         # минимальное количество нот, при котором последовательность считается сигнатурой
-        self.min_interval_count = min_note_count - 1
+        self.min_interval_count = min(len(self.notes), min_note_count) - 1
         # максимальное количество нот, при котором последовательность считается сигнатурой
-        self.max_interval_count = max_note_count - 1
+        self.max_interval_count = min(len(self.notes), max_note_count) - 1
         # минимальное количество раз, которое сигнатура может встречаться в произведении
         self.min_signature_entries = min_signature_entries
         # максимальное количество раз, которое сигнатура может встречаться в произведении
         self.max_signature_entries = max_signature_entries
-
-        self.benchmark = benchmark
-        self.notes = self.__get_notes__(self.score)
 
     def __find_signatures__(self):
         # self.transposed_notes.show()
@@ -173,7 +173,7 @@ class SignaturesFinder:
             note1: Note = notes[i]
             note2: Note = notes[i + 1]
             interval = Interval(note1, note2).semitones
-            durations = note2.duration.ordinal - note1.duration.ordinal
+            durations = note2.duration.quarterLength - note1.duration.quarterLength
             digits.append((interval, durations))
         return digits
 
@@ -210,17 +210,18 @@ class SignaturesFinder:
         return signatures
 
     def __log__(self, str):
-        print(str)
-        # TODO: self.logger.info(str)
+        # print(str)
+        self.logger.info(str)
 
 
 if __name__ == '__main__':
-    notes = converter.parse(r'downloads/Bach/bwv0312.krn')
-    # notes.show()
+    logging.getLogger(__name__).setLevel(logging.INFO)
+    logging.getLogger(__name__).addHandler(logging.StreamHandler())
 
-    # logging.basicConfig(filename='logs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
-    # logging.getLogger('signature_benchmark').setLevel(logging.DEBUG)
+    # notes = converter.parse(r'downloads/Bach/bwv0312.krn')
+    notes = converter.parse(r'res/dataset/bach/The-Well-Tempered-Clavier-Book-1-Prelude-and-Fugue-No.-14-in-F-sharp-Minor-BWV-859_Fugue-BWV-859_Bach-Johann-Sebastian_file1.mid')
+    # notes.show()
 
     finder = SignaturesFinder(notes)
     sig_entries = finder.run()
-    finder.highlight_signatures(sig_entries)
+    # finder.highlight_signatures(sig_entries)

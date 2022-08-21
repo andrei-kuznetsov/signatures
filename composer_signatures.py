@@ -1,5 +1,6 @@
 import collections
 import json
+from datetime import datetime
 
 from music21 import converter
 
@@ -19,6 +20,7 @@ class ComposerSignatures:
         for file in dataset.files():
             try:
                 note_score = converter.parse(file)
+                note_score.piece_name = file
                 scores[dataset.composer()].append(note_score)
                 print('Parsed ', file)
             except Exception as ex:
@@ -37,5 +39,10 @@ class ComposerSignatures:
 
 
 if __name__ == '__main__':
+    start_time = datetime.now()
+
     dataset = Dataset('res/scores/n-grams/bach-control-set', 'Bach')
     ComposerSignatures(dataset, "out/bach01")
+
+    end_time = datetime.now()
+    print('Time: ' + str(end_time - start_time))

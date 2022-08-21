@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from benchmark.signature_benchmark import SignatureBenchmark
+
 
 class Signature:
     def __init__(self, canonical, variants):
@@ -7,20 +9,37 @@ class Signature:
         self.variants = set(variants)
         self.variants.add(canonical)
 
+    def similar_to(self, other_signature, comparator=SignatureBenchmark()):
+        for variant in self.variants:
+            for other_variant in other_signature.variants:
+                if comparator.is_similar(variant, other_variant):
+                    return True
+        return False
+
+    def merge(self, other_signature):
+        self.variants.update(other_signature.variants)
+
     def __eq__(self, o: object):
-        if isinstance(o, Signature):
-            return self.canonical == o.canonical
-        else:
-            return super().__eq__(o)
+        raise AssertionError("Should not be used")
+
+    def __hash__(self):
+        raise AssertionError("Should not be used")
 
     def __str__(self):
-        return self.get_note_str()
+        return self.get_canonical_str()
 
     def __repr__(self):
-        return self.get_note_str()
+        return self.get_canonical_str()
 
-    def get_note_str(self):
-        return ', '.join(str(n) for n in self.canonical) + f' ({len(self.variants)} variants)'
+    def get_canonical_str(self):
+        return self.__get_note_str__(self.canonical) + f' ({len(self.variants)} variants)'
+
+    def get_variants_str(self):
+        return '\n'.join([self.__get_note_str__(i) for i in self.variants])
+
+    @staticmethod
+    def __get_note_str__(notes):
+        return ', '.join(str(n[0]) for n in notes)
 
 
 class SignatureEntry:
@@ -36,10 +55,39 @@ class SignatureEntry:
         return self.get_note_str()
 
     def __eq__(self, o: object):
-        if isinstance(o, SignatureEntry):
-            return self.signature.canonical == o.signature.canonical
-        else:
-            return super().__eq__(o)
+        raise AssertionError("Should not be used")
+
+    def __hash__(self):
+        raise AssertionError("Should not be used")
 
     def get_note_str(self):
-        return f'{str(self.signature)}, {sum(len(self.entries))} entries'
+        return f'{str(self.signature)}, {len(self.entries)} entries'
+
+    def get_variants_str(self):
+        return f'=== {len(self.signature.variants)} variants\n{self.signature.get_variants_str()}\n=== {len(self.entries)} entries'
+
+
+class SignatureIndex:
+    canonical_to_sig_map = {}
+    sig_to_work_map = defaultdict(list)
+
+    def __init__(self):
+        pass
+
+    def add(self, work, sig):
+        for canonical, known_sig in self.canonical_to_sig_map.items():
+            if sig.similar_to(known_sig):
+                self.sig_to_work_map[sig.canonical].append(work)
+                known_sig.merge(sig)
+                return
+
+        self.canonical_to_sig_map[sig.canonical] = sig
+        self.sig_to_work_map[sig.canonical].append(work)
+
+    def find_true_signatures(self, min_work_count=8):
+        true_signatures = []
+        for sig, works in self.sig_to_work_map.items():
+            if len(works) >= min_work_count:
+                true_signatures.append(sig)
+
+        return true_signatures

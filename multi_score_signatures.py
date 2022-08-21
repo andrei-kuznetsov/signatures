@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 
 from find_signatures import SignaturesFinder
+from signature import SignatureIndex
 
 
 class MultiScoreSignatures:
@@ -13,14 +14,32 @@ class MultiScoreSignatures:
         for i in range(self.b):
             self.buckets.append({})
 
+    @staticmethod
+    def __signatures_in_single_work(score):
+        print(f'Trying to find signatures in: {score.piece_name}')
+        sf = SignaturesFinder(score)
+        signature_entries = sf.run()
+        print(f"Found {len(signature_entries)} signatures")
+        # signature_entries.piece_name = score.piece_name
+        return score.piece_name, signature_entries
+
     def run(self, scores):
-        signatures = []
-        for score in scores:
-            print('Trying to find signatures in: {}'.format(scores.index(score)))
-            for i in range(6, 11):
-                sf = SignaturesFinder(score, min_note_count=i)
-                signatures.append(sf.run())
-        print(signatures)
+        # with ThreadPoolExecutor(8) as executor:
+        #     signatures = executor.map(self.__signatures_in_single_work, scores)
+        works_and_signature_entries = map(self.__signatures_in_single_work, scores)
+
+        index = SignatureIndex()
+        for work_name, sig_entries in works_and_signature_entries:
+            print(work_name)
+            print("\n".join([e.get_variants_str() for e in sig_entries]))
+            print(f"Merging signatures from {work_name}")
+            for sig_entry in sig_entries:
+                index.add(work_name, sig_entry.signature)
+        # sig_entries = [item for sublist in works_and_signature_entries for item in sublist]
+        # sig_candidates = [i.signature for i in sig_entries]
+        return index.find_true_signatures()
+        print(works_and_signature_entries)
+
         score_index_const = 100000
         for i in range(0, len(signatures)):
             mapped_scope_signatures = signatures[i]
