@@ -96,15 +96,13 @@ class SignaturesFinder:
         self.max_signature_entries = max_signature_entries
 
         self.benchmark = benchmark
-        self.transposed_score = transpose_to_c(self.score)
-        self.transposed_notes = []
+        self.notes = self.__get_notes__(self.score)
 
     def __find_signatures__(self):
-        self.transposed_notes = self.__get_notes__(self.transposed_score)
         # self.transposed_notes.show()
-        intervals = self.__map_notes__(self.transposed_notes)
-        assert len(intervals) + 1 == len(self.transposed_notes)
-        assert Interval(self.transposed_notes[0], self.transposed_notes[1]).semitones == intervals[0][0]
+        intervals = self.__map_notes__(self.notes)
+        assert len(intervals) + 1 == len(self.notes)
+        assert Interval(self.notes[0], self.notes[1]).semitones == intervals[0][0]
 
         all_subseq_map = defaultdict(list)
         for siglen in range(self.min_interval_count, self.max_interval_count + 1):
@@ -223,7 +221,7 @@ class SignaturesFinder:
         return digits
 
     def highlight_signatures(self, signatures):
-        notes = self.transposed_notes
+        notes = self.notes
         for signature in signatures:
             color = '#' + ''.join(random.sample('0123456789ABCDEF', 6))
             for offset in signature.index:
@@ -233,7 +231,7 @@ class SignaturesFinder:
                         break
                     notes[i].style.color = color
 
-        part = Part(self.transposed_notes)
+        part = Part(self.notes)
         part.show()
 
     # @profile
