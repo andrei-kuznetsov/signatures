@@ -7,6 +7,7 @@ from music21.interval import Interval
 from music21.note import Note
 from music21.stream import Stream, Part, Measure
 
+from signature import Signature
 from benchmark.signature_benchmark import SignatureBenchmark
 from notes_utils import *
 from profile_utils import profile
@@ -26,53 +27,6 @@ score1 = converter.parse('tinyNotation: 4/4 C4 D E8 F C4 D E8 F C4 D E8 F C4 D E
 # todo фильтровать одинаковые сигнатуры - придумать как группировать одинаковые, привести сигнатуру к одному виду
 # сделать через threshold, выбор эталона который будет наиболее похожим на все остальные, возможно > 1
 # todo обработать разные части
-
-
-class Signature:
-    logger = logging.getLogger(__name__)
-
-    def __init__(self, notes, index):
-        self.notes = notes
-        self.index = index
-
-    def __eq__(self, o: object):
-        if isinstance(o, Signature):
-            return self.notes == o.notes and self.index == o.index
-        else:
-            return super().__eq__(o)
-
-    def __str__(self):
-        return self.get_note_str()
-
-    def __repr__(self):
-        return self.get_note_str()
-
-    def len(self):
-        return len(self.notes)
-
-    def get_note_str(self):
-        return ', '.join(str(n) for n in self.notes) + ' with index [' + ', '.join(str(n) for n in self.index) + ']'
-
-
-class SignatureEntry:
-
-    def __init__(self, signatures):
-        self.signatures = signatures
-
-    def __str__(self):
-        return self.get_note_str()
-
-    def __repr__(self):
-        return self.get_note_str()
-
-    def __eq__(self, o: object):
-        if isinstance(o, SignatureEntry):
-            return self.signatures[0] == o.signatures[0]
-        else:
-            return super().__eq__(o)
-
-    def get_note_str(self):
-        return 'Found signature with: ' + ', '.join(str(n) for n in self.signatures)
 
 
 class SignaturesFinder:
