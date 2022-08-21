@@ -10,6 +10,9 @@ from music21.stream import Stream, Part, Measure
 from benchmark.signature_benchmark import SignatureBenchmark
 from notes_utils import *
 from profile_utils import profile
+from collections import defaultdict
+from collections import OrderedDict
+import logging
 
 # score1 = converter.parse('http://kern.ccarh.org/cgi-bin/ksdata?l=users/craig/classical/bach/cello&file=bwv1007-01.krn&f=kern')
 # score1 = converter.parse('https://kern.humdrum.org/cgi-bin/ksdata?location=users/craig/classical/mozart/piano/sonata&file=sonata15-1.krn&format=kern')
@@ -26,6 +29,7 @@ score1 = converter.parse('tinyNotation: 4/4 C4 D E8 F C4 D E8 F C4 D E8 F C4 D E
 
 
 class Signature:
+    logger = logging.getLogger(__name__)
 
     def __init__(self, notes, index):
         self.notes = notes
@@ -42,6 +46,9 @@ class Signature:
 
     def __repr__(self):
         return self.get_note_str()
+
+    def len(self):
+        return len(self.notes)
 
     def get_note_str(self):
         return ', '.join(str(n) for n in self.notes) + ' with index [' + ', '.join(str(n) for n in self.index) + ']'
@@ -69,71 +76,118 @@ class SignatureEntry:
 
 
 class SignaturesFinder:
+    logger = logging.getLogger(__name__)
 
     def __init__(self,
                  score=score1,
-                 threshold=30,
-                 benchmark_percent=60,
                  min_note_count=4,
                  max_note_count=10,
                  min_signature_entries=2,
                  max_signature_entries=10,
-                 show_logs=True,
-                 write_logs_in_file=False,
-                 use_rhythmic=False):
+                 benchmark=SignatureBenchmark()):
         self.score = score
-        # допустимый процент несовпадения
-        self.threshold = threshold
-        # контрольный показатель совпадения, при котором тест считается пройденным
-        self.benchmark_percent = benchmark_percent
         # минимальное количество нот, при котором последовательность считается сигнатурой
-        self.min_note_count = min_note_count - 1
+        self.min_interval_count = min_note_count - 1
         # максимальное количество нот, при котором последовательность считается сигнатурой
-        self.max_note_count = max_note_count - 1
+        self.max_interval_count = max_note_count - 1
         # минимальное количество раз, которое сигнатура может встречаться в произведении
         self.min_signature_entries = min_signature_entries
         # максимальное количество раз, которое сигнатура может встречаться в произведении
         self.max_signature_entries = max_signature_entries
-        # показывать ли дебажные логи
-        self.show_logs = show_logs
-        self.logs_file = None
-        if write_logs_in_file:
-            self.logs_file = open('logs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"), "w+")
-        # искать ритмические сигнатуры
-        self.use_rhythmic = use_rhythmic
+
+        self.benchmark = benchmark
         self.transposed_score = transpose_to_c(self.score)
         self.transposed_notes = []
 
     def __find_signatures__(self):
-        benchmark = SignatureBenchmark(self.benchmark_percent, self.threshold, self.use_rhythmic, self.show_logs)
         self.transposed_notes = self.__get_notes__(self.transposed_score)
-        intervals1 = self.__map_notes__(self.transposed_notes)
-        intervals2 = intervals1.copy()
-        notes_to_signature = {}
+        # self.transposed_notes.show()
+        intervals = self.__map_notes__(self.transposed_notes)
+        assert len(intervals) + 1 == len(self.transposed_notes)
+        assert Interval(self.transposed_notes[0], self.transposed_notes[1]).semitones == intervals[0][0]
+
+        all_subseq_map = defaultdict(list)
+        for siglen in range(self.min_interval_count, self.max_interval_count + 1):
+            for i in range(0, len(intervals) - siglen + 1):
+                key = tuple(intervals[i: i + siglen])
+                all_subseq_map[key].append(i)
+
+        # arithmetic progression: num_of_windows(max_interval_count)+..+num_of_windows(max_interval_count)
+        all_possible_windows = (self.max_interval_count - self.min_interval_count + 1) * (
+                2 * len(intervals) - self.max_interval_count - self.min_interval_count + 2) / 2
+        assert sum(map(len, all_subseq_map.values())) == all_possible_windows
+
+        self.log_stats(all_subseq_map, intervals)
+
+        # create domains by similarity
+        checked_seq = set()
+        groups = {}
+
+        for seq1 in all_subseq_map:
+            if seq1 in checked_seq:
+                continue
+
+            group = set()
+            group.add(seq1)
+
+            similarity_queue = list()
+            similarity_queue.append(seq1)
+
+            while len(similarity_queue) > 0:
+                sample = similarity_queue.pop()
+                for seq2 in all_subseq_map:
+                    if seq2 in checked_seq:
+                        continue
+
+                    if len(sample) != len(seq2):  # todo: interpolated notes and other variations
+                        continue
+
+                    if sample == seq2:
+                        continue
+
+                    if self.benchmark.is_similar(sample, seq2):
+                        self.__log__(f"merged {sample} and {seq2} \t\t //  canonical form: {seq1}")
+                        similarity_queue.append(seq2)
+                        checked_seq.add(seq2)
+                        group.add(seq2)
+
+            groups[seq1] = group
+            self.__log__(f"Merged {len(group)} patterns. Sample: {seq1}")
+
+        self.__log__(f"Found {len(groups)} domains")
+
         result = []
-        for i in range(0, len(intervals1)):
-            for k in range(i + self.min_note_count - 1, len(intervals2)):
-                j = i + self.min_note_count - 1
-                m = k + self.min_note_count - 1
-                signature = None
-                while j <= i + self.max_note_count and k + self.max_note_count >= m and j <= k:
-                    if 0 <= j <= len(intervals1) and 0 <= m <= len(intervals2):
-                        notes1 = intervals1[i: j]
-                        notes2 = intervals2[k: m]
-                        key = create_key(notes1, notes2)
-                        if key in notes_to_signature:
-                            is_signature = notes_to_signature[key]
-                        else:
-                            is_signature = benchmark.is_similar(self.logs_file, notes1, notes2)
-                            notes_to_signature[key] = is_signature
-                        if is_signature:
-                            signature = SignatureEntry([Signature(notes1, [i, j + 1]), Signature(notes2, [k, m + 1])])
-                    j += 1
-                    m += 1
-                if signature is not None:
-                    result.append(signature)
-                    self.__log__(str(signature))
+        for key, values in groups.items():
+            indexes = []
+            for value in values:
+                indexes += all_subseq_map[value]
+
+            if self.min_signature_entries <= len(indexes) <= self.max_signature_entries:
+                signature = Signature(key, sorted(indexes))
+                result.append(signature)
+                self.__log__(str(signature))
+
+        self.__log__(f"Found {len(result)} signatures")
+
         return result
+
+    def log_stats(self, all_subseq_map, intervals):
+        self.__log__(f"Total input length: {len(intervals)}")
+        self.__log__(f"Input: {intervals}")
+        self.__log__(f"Total unique subsequences "
+              f"(length [{self.min_interval_count}..{self.max_interval_count}]): {len(all_subseq_map)}, "
+              f"max possible: {sum(map(len, all_subseq_map.values()))}")
+        sizes = OrderedDict()
+        for i in range(self.min_interval_count, self.max_interval_count + 1):
+            sizes[i] = 0
+        for key in all_subseq_map:
+            sizes[len(key)] += 1
+        self.__log__(f"Stats:")
+        self.__log__(f"  min = {min(sizes.values())}")
+        self.__log__(f"  max = {max(sizes.values())}")
+        self.__log__(f"  avg = {sum(sizes.values()) / len(sizes)}")
+        for size, count in sizes.items():
+            self.__log__(f"    len({size}) = {count} (max: {len(intervals) - size + 1})")
 
     def __get_notes__(self, score):
         notes = []
@@ -144,7 +198,7 @@ class SignaturesFinder:
             elif isinstance(note, Chord):
                 notes.append(Note(note.root()))
             else:
-                print('Unknown type: {}'.format(note))
+                self.__log__('Unknown type: {}'.format(note))
         return notes
 
     @staticmethod
@@ -165,92 +219,48 @@ class SignaturesFinder:
             note2: Note = notes[i + 1]
             interval = Interval(note1, note2).semitones
             durations = note2.duration.ordinal - note1.duration.ordinal
-            digits.append((i, interval, durations))
+            digits.append((interval, durations))
         return digits
 
-    def __recover_notes__(self, notes):
-        result = []
-        for i in range(0, len(notes)):
-            note = notes[i]
-            index = note[0]
-            result.append(self.transposed_notes[index])
-            if i == len(notes) - 1:
-                result.append(self.transposed_notes[index + 1])
-        return result
-
-    @staticmethod
-    def __count_entries__(list):
-        list_with_count, counted_elements = [], []
-        for element in list:
-            repeat_count = 0
-            for counted_element in counted_elements:
-                has_notes = False
-                for signature in element.signatures:
-                    if signature in counted_element.signatures:
-                        has_notes = True
-                        repeat_count += 1
-                    elif has_notes:
-                        counted_element.signatures.append(signature)
-            if repeat_count <= 0:
-                counted_elements = counted_elements + [element]
-        for element in counted_elements:
-            list_with_count = list_with_count + [[element, len(element.signatures)]]
-        return list_with_count
-
-    def __filter_signatures_by_entries(self, list_with_count):
-        result = []
-        for index in range(0, len(list_with_count)):
-            element = list_with_count[index]
-            if self.min_signature_entries <= element[1] <= self.max_signature_entries:
-                result.append(element[0])
-        return result
-
-    def highlight_signatures(self, filtered_signatures):
-        notes = self.__pick_notes_from_score__(self.transposed_score)[0]
-        for signatureEntry in filtered_signatures:
+    def highlight_signatures(self, signatures):
+        notes = self.transposed_notes
+        for signature in signatures:
             color = '#' + ''.join(random.sample('0123456789ABCDEF', 6))
-            for signature in signatureEntry.signatures:
-                for i in range(signature.index[0], signature.index[1]):
+            for offset in signature.index:
+                for i in range(offset, offset + signature.len() + 1):
+                    if notes[i].style.color:
+                        self.__log__(f"Overlapping signatures at index {i}")
+                        break
                     notes[i].style.color = color
-        self.transposed_score.show()
+
+        part = Part(self.transposed_notes)
+        part.show()
 
     # @profile
     def run(self):
         self.__log__('Started signature search for ' + str(self.score))
         start_time = datetime.now()
-        signature_entries = self.__find_signatures__()
+        signatures = self.__find_signatures__()
         end_time = datetime.now()
 
         self.__log__('Time: ' + str(end_time - start_time))
-        self.__log__('Founded signature entries len: ' + str(len(signature_entries)))
+        self.__log__('Found signatures: ' + str(len(signatures)))
 
-        counted_entries = self.__count_entries__(signature_entries)
-        self.__log__('Counted entries len: ' + str(len(counted_entries)))
+        self.highlight_signatures(signatures)
 
-        filtered_signatures = self.__filter_signatures_by_entries(counted_entries)
-        self.__log__('Filtered signatures by entries: ' + str(len(filtered_signatures)))
-
-        recovered_signatures = []
-        for signatureEntry in filtered_signatures:
-            recovered_entry = []
-            for signature in signatureEntry.signatures:
-                recovered_entry.append(Signature(self.__recover_notes__(signature.notes), signature.index))
-            recovered_signatures.append(SignatureEntry(recovered_entry))
-
-        self.highlight_signatures(recovered_signatures)
-        result = []
-        for entries in recovered_signatures:
-            unique_notes = []
-            for signature in entries.signatures:
-                if signature.notes not in unique_notes:
-                    unique_notes.append(signature.notes)
-            result.append(unique_notes)
-        if self.logs_file is not None:
-            self.logs_file.close()
-        return result
+        return signatures
 
     def __log__(self, str):
-        if self.show_logs:
-            print(str)
-        if self.logs_file is not None:
-            self.logs_file.write(str + "\n")
+        print(str)
+        # TODO: self.logger.info(str)
+
+
+if __name__ == '__main__':
+    notes = converter.parse(r'downloads/Bach/bwv0312.krn')
+    # notes.show()
+
+    # logging.basicConfig(filename='logs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    # logging.getLogger('signature_benchmark').setLevel(logging.DEBUG)
+
+    signatures = SignaturesFinder(notes)
+    print(signatures.run())
