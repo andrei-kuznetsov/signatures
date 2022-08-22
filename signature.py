@@ -1,6 +1,12 @@
 from collections import defaultdict
+from collections import namedtuple
 
 from benchmark.signature_benchmark import SignatureBenchmark
+
+
+AnalyzableInterval = namedtuple("AI", ("i", "d"))
+AnalyzableInterval.__str__ = lambda self: f"({self.i}, {self.d})"
+AnalyzableInterval.__repr__ = AnalyzableInterval.__str__
 
 
 class Signature:
@@ -84,7 +90,7 @@ class SignatureIndex:
         self.canonical_to_sig_map[sig.canonical] = sig
         self.sig_to_work_map[sig.canonical].append(work)
 
-    def find_true_signatures(self, min_work_count=8):
+    def find_true_signatures(self, min_work_count=5):
         true_signatures = []
         for sig, works in self.sig_to_work_map.items():
             if len(works) >= min_work_count:
