@@ -1,16 +1,13 @@
 import random
 import unittest
-import random
-from collections import namedtuple
 from benchmark.signature_benchmark import SignatureBenchmark
-
-SimpleInterval = namedtuple('Interval', ('idx', 'semi', 'dur'))
+from signature import AnalyzableInterval
 
 
 def pitch_seq(semitones):
     result = []
     for semitone in semitones:
-        result.append(SimpleInterval(idx=0, semi=semitone, dur=0))
+        result.append(AnalyzableInterval(i=semitone, d=0))
     return result
 
 
@@ -35,7 +32,12 @@ class TestSimilarity(unittest.TestCase):
             intervals2 = pitch_seq(random_pitches(len(intervals1)))
         self.assertFalse(SignatureBenchmark(100, 1).is_similar(intervals1, intervals2))
 
-    def test_not_similar_to_different_len3(self):
+    def test_similar_to_different_1_of_3_miss(self):
+        intervals1 = pitch_seq([-2, -2, -1])
+        intervals2 = pitch_seq([-2, -2, -2])
+        self.assertTrue(SignatureBenchmark().is_similar(intervals1, intervals2))
+
+    def test_not_similar_to_different_3_of_3_miss(self):
         intervals1 = pitch_seq([1, -1, -2])
         intervals2 = pitch_seq([-1, -2, 2])
         self.assertFalse(SignatureBenchmark().is_similar(intervals1, intervals2))

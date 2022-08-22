@@ -15,7 +15,7 @@ class SignatureBenchmark:
             return False  # todo
 
         matching = sum(map(lambda n1, n2: 1 if n1.i == n2.i else 0, notes1, notes2))
-        return matching >= self.benchmark_percent * len(notes1) / 100
+        return matching >= int(self.benchmark_percent * len(notes1) / 100)
 
 
 def parse_ints_from_intervals(notes):
