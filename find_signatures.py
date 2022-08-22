@@ -76,7 +76,7 @@ class SignaturesFinder:
         remaining_subseq = set(all_subseq_map.keys())
         groups = {}
 
-        while len(remaining_subseq) > 0:
+        while remaining_subseq:
             seq1 = remaining_subseq.pop()
 
             group = set()
@@ -96,7 +96,7 @@ class SignaturesFinder:
                         self.__log__(f"merged {sample} and {seq2} \t\t //  canonical form: {seq1}")
                         similarity_queue.append(seq2)
                         checked.add(seq2)
-                        group.add(seq2)
+                group.update(checked)
                 remaining_subseq.difference_update(checked)
             groups[seq1] = group
             if len(group) > 1:
@@ -168,7 +168,8 @@ class SignaturesFinder:
             note1: Note = notes[i]
             note2: Note = notes[i + 1]
             interval = Interval(note1, note2).semitones
-            durations = note2.duration.quarterLength - note1.duration.quarterLength
+            # durations = note2.duration.quarterLength - note1.duration.quarterLength
+            durations = 0 # ignore rhythm at the moment
             digits.append(AnalyzableInterval(interval, durations))
         return digits
 
