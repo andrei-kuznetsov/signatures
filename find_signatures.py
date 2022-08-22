@@ -7,7 +7,7 @@ from music21.interval import Interval
 from music21.note import Note
 from music21.stream import Stream, Part, Measure
 
-from signature import Signature
+from signature import Signature, AnalyzableInterval
 from signature import SignatureEntry
 from benchmark.signature_benchmark import SignatureBenchmark
 from notes_utils import *
@@ -73,12 +73,11 @@ class SignaturesFinder:
         self.log_stats(all_subseq_map, intervals)
 
         # create domains by similarity
-        checked_seq = set()
+        remaining_subseq = set(all_subseq_map.keys())
         groups = {}
 
-        for seq1 in all_subseq_map:
-            if seq1 in checked_seq:
-                continue
+        while len(remaining_subseq) > 0:
+            seq1 = remaining_subseq.pop()
 
             group = set()
             group.add(seq1)
@@ -88,24 +87,20 @@ class SignaturesFinder:
 
             while len(similarity_queue) > 0:
                 sample = similarity_queue.pop()
-                for seq2 in all_subseq_map:
-                    if seq2 in checked_seq:
-                        continue
-
+                checked = set()
+                for seq2 in remaining_subseq:
                     if len(sample) != len(seq2):  # todo: interpolated notes and other variations
-                        continue
-
-                    if sample == seq2:
                         continue
 
                     if self.benchmark.is_similar(sample, seq2):
                         self.__log__(f"merged {sample} and {seq2} \t\t //  canonical form: {seq1}")
                         similarity_queue.append(seq2)
-                        checked_seq.add(seq2)
+                        checked.add(seq2)
                         group.add(seq2)
-
+                remaining_subseq.difference_update(checked)
             groups[seq1] = group
-            self.__log__(f"Merged {len(group)} patterns. Sample: {seq1}")
+            if len(group) > 1:
+                self.__log__(f"Merged {len(group)} patterns. Sample: {seq1}")
 
         self.__log__(f"Found {len(groups)} domains")
 
@@ -174,7 +169,7 @@ class SignaturesFinder:
             note2: Note = notes[i + 1]
             interval = Interval(note1, note2).semitones
             durations = note2.duration.quarterLength - note1.duration.quarterLength
-            digits.append((interval, durations))
+            digits.append(AnalyzableInterval(interval, durations))
         return digits
 
     def highlight_signatures(self, sig_entries):
@@ -219,7 +214,8 @@ if __name__ == '__main__':
     logging.getLogger(__name__).addHandler(logging.StreamHandler())
 
     # notes = converter.parse(r'downloads/Bach/bwv0312.krn')
-    notes = converter.parse(r'res/dataset/bach/The-Well-Tempered-Clavier-Book-1-Prelude-and-Fugue-No.-14-in-F-sharp-Minor-BWV-859_Fugue-BWV-859_Bach-Johann-Sebastian_file1.mid')
+    # notes = converter.parse(r'res/dataset/bach/The-Well-Tempered-Clavier-Book-1-Prelude-and-Fugue-No.-14-in-F-sharp-Minor-BWV-859_Fugue-BWV-859_Bach-Johann-Sebastian_file1.mid')
+    notes = converter.parse(r'downloads/Bach/wtc1p02.krn')
     # notes.show()
 
     finder = SignaturesFinder(notes)
