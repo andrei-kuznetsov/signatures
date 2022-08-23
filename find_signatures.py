@@ -5,7 +5,7 @@ from music21 import *
 from music21.chord import Chord
 from music21.interval import Interval
 from music21.note import Note
-from music21.stream import Stream, Part, Measure
+from music21.stream import Stream, Part, Measure, Score
 
 from signature import Signature, AnalyzableInterval
 from signature import SignatureEntry
@@ -29,6 +29,7 @@ score1 = converter.parse('tinyNotation: 4/4 C4 D E8 F C4 D E8 F C4 D E8 F C4 D E
 # сделать через threshold, выбор эталона который будет наиболее похожим на все остальные, возможно > 1
 # todo обработать разные части
 
+show_debug_scores=False
 
 class SignaturesFinder:
     logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ class SignaturesFinder:
         self.max_signature_entries = max_signature_entries
 
     def __find_signatures__(self):
-        # self.transposed_notes.show()
+        # Part(self.notes).show()
         intervals = self.__map_notes__(self.notes)
         assert len(intervals) + 1 == len(self.notes)
         assert Interval(self.notes[0], self.notes[1]).semitones == intervals[0][0]
@@ -140,26 +141,61 @@ class SignaturesFinder:
             self.__log__(f"    len({size}) = {count} (max: {len(intervals) - size + 1})")
 
     def __get_notes__(self, score):
+        return self.__get_notes_v2__(score)
+
+    # This is a skyline-like algorithm
+    def __get_notes_v2__(self, score): # TODO: for downloads/Bach/wtc1p02.krn produces 167 patterns (compare to v1)
         notes = []
-        parts = self.__pick_notes_from_score__(score)
-        for note in parts[0]:
-            if isinstance(note, Note):
-                notes.append(note)
-            elif isinstance(note, Chord):
-                notes.append(Note(note.root()))
+        chords = score.chordify()
+        # chords.show()
+        for chord in chords.recurse().getElementsByClass('Chord'):
+            notes.append(sorted(chord.notes)[-1])
+        self.debug_show_notes(notes)
+
+        return notes
+
+    def __get_notes_v1__(self, score): # TODO: for downloads/Bach/wtc1p02.krn produces 123 patterns (compare to v2)
+        parts = score.getElementsByClass('Part')
+        if len(parts) > 1:
+            print(len(parts))
+            raise AssertionError()
+        elif len(parts) == 1:
+            part = parts[0]
+        else:
+            part = score
+
+        measures = part.getElementsByClass('Measure')
+
+        notes = []
+        for measure in measures:
+            voices = measure.voices
+            if voices:
+                top_voice = voices[0]  # todo: check that this is really a top voice
+                notes_and_chords = top_voice.notes  # todo: rests
             else:
-                self.__log__('Unknown type: {}'.format(note))
+                notes_and_chords = measure.notes
+
+            for note in notes_and_chords:
+                if isinstance(note, Note):
+                    notes.append(note)
+                elif isinstance(note, Chord):
+                    notes.append(Note(note.root()))
+                    raise AssertionError()
+                else:
+                    self.__log__('Unknown type: {}'.format(note))
+                    raise AssertionError()
+
+        # self.debug_show_notes(notes)
         return notes
 
     @staticmethod
-    def __pick_notes_from_score__(score):
-        if isinstance(score, Part):
-            parts = [score.flat.notes.stream()]
-        elif isinstance(score, Measure):
-            parts = [score.flat.notes.stream()]
-        else:
-            parts = [p.flat.notes.stream() for p in score.parts]
-        return parts
+    def debug_show_notes(notes):
+        if not show_debug_scores:
+            return
+        # score = Score(notes) # todo: see how beautiful it looks for downloads/Bach/wtc1p02.krn
+        score = Score()
+        score.append(notes)
+        score.show()
 
     @staticmethod
     def __map_notes__(notes):
@@ -216,7 +252,9 @@ if __name__ == '__main__':
 
     # notes = converter.parse(r'downloads/Bach/bwv0312.krn')
     # notes = converter.parse(r'res/dataset/bach/The-Well-Tempered-Clavier-Book-1-Prelude-and-Fugue-No.-14-in-F-sharp-Minor-BWV-859_Fugue-BWV-859_Bach-Johann-Sebastian_file1.mid')
+    show_debug_scores = False
     notes = converter.parse(r'downloads/Bach/wtc1p02.krn')
+    # notes = converter.parse(r'downloads/Bach/wtc1p04.krn')  # no particular voice/part containing a melody
     # notes.show()
 
     finder = SignaturesFinder(notes)
