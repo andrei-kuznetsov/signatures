@@ -75,7 +75,7 @@ class SignatureEntry:
 
 class SignatureIndex:
     canonical_to_sig_map = {}
-    sig_to_work_map = defaultdict(list)
+    canonical_to_work_map = {}
 
     def __init__(self):
         pass
@@ -83,18 +83,19 @@ class SignatureIndex:
     def add(self, work, sig):
         for canonical, known_sig in self.canonical_to_sig_map.items():
             if sig.similar_to(known_sig):
-                self.sig_to_work_map[canonical].append(work)
+                self.canonical_to_work_map[canonical].add(work)
                 known_sig.merge(sig)
                 assert (len(self.canonical_to_sig_map) == len(self.canonical_to_work_map))
                 return
 
         self.canonical_to_sig_map[sig.canonical] = sig
-        self.sig_to_work_map[sig.canonical].append(work)
+        self.canonical_to_work_map[sig.canonical] = {work}
+        assert (len(self.canonical_to_sig_map) == len(self.canonical_to_work_map))
 
-    def find_true_signatures(self, min_work_count=5):
+    def find_true_signatures(self, min_work_count=8):
         true_signatures = []
-        for sig, works in self.sig_to_work_map.items():
+        for canonical, works in self.canonical_to_work_map.items():
             if len(works) >= min_work_count:
-                true_signatures.append(sig)
+                true_signatures.append((self.canonical_to_sig_map[canonical], works))
 
         return true_signatures
