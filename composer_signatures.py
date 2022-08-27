@@ -14,7 +14,7 @@ import os.path
 class ComposerSignatures:
 
     def __init__(self, dataset, out_path):
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        os.makedirs(out_path, exist_ok=True)
         scores = collections.defaultdict(list)
 
         for file in dataset.files():
@@ -31,18 +31,23 @@ class ComposerSignatures:
             multi_score_signatures = MultiScoreSignatures().run(scores[composer])
             result[composer].append(multi_score_signatures)
 
-        with open(out_path + ".json", "w") as outfile:
-            json.dump(result, outfile, cls=NoteEncoder)
-        with open(out_path + ".json") as json_file:
-            data = json.load(json_file, object_hook=note_decoder)
-            print(data)
+            print(multi_score_signatures)
+
+            with open(f"{out_path}/{composer}.json", "w") as outfile:
+                sig_and_works = map(lambda e: {"signature": e[0].to_dict(), "works": sorted(list(e[1]))},
+                                    multi_score_signatures)
+                json.dump(list(sig_and_works), outfile)
+
+            # with open(out_path + ".json") as json_file:
+            #     data = json.load(json_file, object_hook=note_decoder)
+            #     print(data)
 
 
 if __name__ == '__main__':
     start_time = datetime.now()
 
     dataset = Dataset('res/bach_wtc.txt', 'Bach')
-    ComposerSignatures(dataset, "out/bach01")
+    ComposerSignatures(dataset, "out")
 
     end_time = datetime.now()
     print('Time: ' + str(end_time - start_time))

@@ -22,6 +22,14 @@ class Signature:
                     return True
         return False
 
+    def to_dict(self):
+        return {'canonical': self.canonical, 'variants': sorted(list(self.variants))}
+
+    @staticmethod
+    def from_dict(dct):
+        sig = Signature(dct['canonical'], dct['variants'])
+        return sig
+
     def merge(self, other_signature):
         self.variants.update(other_signature.variants)
 
