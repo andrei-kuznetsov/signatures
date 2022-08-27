@@ -83,8 +83,9 @@ class SignatureIndex:
     def add(self, work, sig):
         for canonical, known_sig in self.canonical_to_sig_map.items():
             if sig.similar_to(known_sig):
-                self.sig_to_work_map[sig.canonical].append(work)
+                self.sig_to_work_map[canonical].append(work)
                 known_sig.merge(sig)
+                assert (len(self.canonical_to_sig_map) == len(self.canonical_to_work_map))
                 return
 
         self.canonical_to_sig_map[sig.canonical] = sig
