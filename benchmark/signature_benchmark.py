@@ -5,7 +5,7 @@ logger = logging.getLogger('signature_benchmark')
 
 
 class SignatureBenchmark:
-    def __init__(self, benchmark_percent=80, threshold=30, use_rhythmic=False):
+    def __init__(self, benchmark_percent=100, threshold=30, use_rhythmic=False):
         self.benchmark_percent = benchmark_percent
         self.threshold = threshold
         self.use_rhythmic = use_rhythmic
