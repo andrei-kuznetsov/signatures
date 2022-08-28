@@ -36,12 +36,16 @@ class Dataset:
                             # Sanity: already downloaded in this session
                             raise FileExistsError(f"File already exists: {fname}, url: {line}")
 
-                        if os.path.isfile(fname):
+                        furlname = fname + ".url"
+                        if os.path.isfile(fname) \
+                                and os.path.isfile(furlname) \
+                                and local_or_url == Path(furlname).read_text():
                             print(f"Using existing file {fname}")
                         else:
                             print(f"Downloading {local_or_url} > {fname}")
                             urllib.request.urlretrieve(local_or_url, fname)
                             downloaded.add(fname)
+                            Path(furlname).write_text(local_or_url)
 
                         self.__score_files.append(fname)
                 except Exception as ex:
