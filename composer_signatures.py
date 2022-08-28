@@ -1,4 +1,4 @@
-import os
+import pickle
 import json
 from datetime import datetime
 import multiprocessing
@@ -11,33 +11,72 @@ from dataset import Dataset
 import os
 import os.path
 
+# default_cache_path=None
+default_cache_path = "out/cache"
+
 
 def signatures_in_single_work(file):
     try:
-        return SingleWorkSignaturesFinder(file).find()
+        return CachingSingleWorkSignaturesFinder(file).find()
     except Exception as ex:
         print(f'Failed to process {file} due to exception: {ex}')
         return file, "error"
 
 
-class SingleWorkSignaturesFinder:
-    def __init__(self, file):
+class CachingSingleWorkSignaturesFinder:
+    def __init__(self, file, cache=default_cache_path):
         if os.path.getsize(file) <= 0:
             raise Exception(f"Empty file: {file}")
 
-        try:
-            self.score = converter.parse(file)
-            self.piece_name = file
-            print('Parsed ', file)
-        except Exception as ex:
-            raise Exception(f'Failed to parse {file}') from ex
+        self.src_file = file
+        self.cache = cache
+
+    def cache_file(self):
+        if self.cache:
+            return os.path.join(self.cache, self.src_file + ".sig")
+        else:
+            return None
+
+    def is_cache_valid(self):
+        # TODO: consider signature extraction parameters
+        cache_file = self.cache_file()
+        if not cache_file or not os.path.exists(cache_file):
+            return False
+
+        cache_modified = os.path.getmtime(cache_file)
+        src_modified = os.path.getmtime(self.src_file)
+        return cache_modified > src_modified
+
+    def get_cached_result(self):
+        cache_file = self.cache_file()
+
+        with open(cache_file, 'rb') as cache_file:
+            return pickle.load(cache_file)
+
+    def save_cache_result(self, result):
+        cache_file = self.cache_file()
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        with open(cache_file, 'wb') as cache_file:
+            return pickle.dump(result, cache_file)
 
     def find(self):
-        print(f'Trying to find signatures in: {self.piece_name}')
-        sf = SignaturesFinder(self.score)
+        if self.is_cache_valid():
+            print(f"Using existing signatures cache for {self.src_file}")
+            return self.get_cached_result()
+
+        try:
+            score = converter.parse(self.src_file)
+            print('Parsed ', self.src_file)
+        except Exception as ex:
+            raise Exception(f'Failed to parse {self.src_file}') from ex
+
+        print(f'Trying to find signatures in: {self.src_file}')
+        sf = SignaturesFinder(score)
         signature_entries = sf.run()
         print(f"Found {len(signature_entries)} signature candidates")
-        return self.piece_name, signature_entries
+        result = self.src_file, signature_entries
+        self.save_cache_result(result)
+        return result
 
 
 class ComposerSignatures:
@@ -71,8 +110,8 @@ class ComposerSignatures:
 if __name__ == '__main__':
     start_time = datetime.now()
 
-    dataset_name="nextech-22"
-    # dataset_name = "test"
+    # dataset_name = "nextech-22"
+    dataset_name = "test"
     dataset_path = f"res/scores/{dataset_name}"
     for f in os.listdir(dataset_path):
         dataset = Dataset(os.path.join(dataset_path, f))
