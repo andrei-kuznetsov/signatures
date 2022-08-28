@@ -7,9 +7,9 @@ from urllib.parse import parse_qs
 
 
 class Dataset:
-    __score_files = []
 
     def __init__(self, path, composer=None, cache="downloads/"):
+        self.__score_files = []
         self.__path = path
         if composer:
             self.__composer = composer
