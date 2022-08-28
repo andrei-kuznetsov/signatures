@@ -1,4 +1,4 @@
-import collections
+import os
 import json
 from datetime import datetime
 
@@ -15,39 +15,35 @@ class ComposerSignatures:
 
     def __init__(self, dataset, out_path):
         os.makedirs(out_path, exist_ok=True)
-        scores = collections.defaultdict(list)
+        scores = []
 
         for file in dataset.files():
             try:
                 note_score = converter.parse(file)
                 note_score.piece_name = file
-                scores[dataset.composer()].append(note_score)
+                scores.append(note_score)
                 print('Parsed ', file)
             except Exception as ex:
                 print(f'Failed to parse {file} due to exception: {ex}')
 
-        result = collections.defaultdict(list)
-        for composer in scores:
-            multi_score_signatures = MultiScoreSignatures().run(scores[composer])
-            result[composer].append(multi_score_signatures)
+        multi_score_signatures = MultiScoreSignatures().run(scores)
+        print(multi_score_signatures)
 
-            print(multi_score_signatures)
-
-            with open(f"{out_path}/{composer}.json", "w") as outfile:
-                sig_and_works = map(lambda e: {"signature": e[0].to_dict(), "works": sorted(list(e[1]))},
-                                    multi_score_signatures)
-                json.dump(list(sig_and_works), outfile)
-
-            # with open(out_path + ".json") as json_file:
-            #     data = json.load(json_file, object_hook=note_decoder)
-            #     print(data)
+        with open(f"{out_path}/{dataset.composer()}.json", "w") as outfile:
+            sig_and_works = map(lambda e: {"signature": e[0].to_dict(), "works": sorted(list(e[1]))},
+                                multi_score_signatures)
+            json.dump(list(sig_and_works), outfile)
 
 
 if __name__ == '__main__':
     start_time = datetime.now()
 
-    dataset = Dataset('res/scores/nextech-22/bach.txt')
-    ComposerSignatures(dataset, "out/nextech-22")
+    dataset_name="nextech-22"
+    # dataset_name = "test"
+    dataset_path = f"res/scores/{dataset_name}"
+    for f in os.listdir(dataset_path):
+        dataset = Dataset(os.path.join(dataset_path, f))
+        ComposerSignatures(dataset, f"out/{dataset_name}")
 
     end_time = datetime.now()
     print('Time: ' + str(end_time - start_time))
