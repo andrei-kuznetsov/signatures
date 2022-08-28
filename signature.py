@@ -89,6 +89,13 @@ class SignatureIndex:
         pass
 
     def add(self, work, sig):
+        # fast lane
+        if sig.canonical in self.canonical_to_sig_map:
+            self.canonical_to_work_map[sig.canonical].add(work)
+            self.canonical_to_sig_map[sig.canonical].merge(sig)
+            return
+
+        # slow path
         for canonical, known_sig in self.canonical_to_sig_map.items():
             if sig.similar_to(known_sig):
                 self.canonical_to_work_map[canonical].add(work)
