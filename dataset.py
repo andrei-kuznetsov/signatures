@@ -1,5 +1,6 @@
 import os
 import os.path
+from pathlib import Path
 import urllib.request
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
@@ -8,10 +9,13 @@ from urllib.parse import parse_qs
 class Dataset:
     __score_files = []
 
-    def __init__(self, path, composer, cache="downloads/"):
+    def __init__(self, path, composer=None, cache="downloads/"):
         self.__path = path
-        self.__composer = composer
-        self.__cache = os.path.join(cache, composer)
+        if composer:
+            self.__composer = composer
+        else:
+            self.__composer = Path(path).stem
+        self.__cache = os.path.join(cache, self.__composer)
 
         downloaded = set()
         os.makedirs(self.__cache, exist_ok=True)

@@ -46,8 +46,8 @@ class ComposerSignatures:
 if __name__ == '__main__':
     start_time = datetime.now()
 
-    dataset = Dataset('res/bach_wtc.txt', 'Bach')
-    ComposerSignatures(dataset, "out")
+    dataset = Dataset('res/scores/nextech-22/bach.txt')
+    ComposerSignatures(dataset, "out/nextech-22")
 
     end_time = datetime.now()
     print('Time: ' + str(end_time - start_time))
