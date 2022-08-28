@@ -82,11 +82,9 @@ class SignatureEntry:
 
 
 class SignatureIndex:
-    canonical_to_sig_map = {}
-    canonical_to_work_map = {}
-
     def __init__(self):
-        pass
+        self.canonical_to_sig_map = {}
+        self.canonical_to_work_map = {}
 
     def add(self, work, sig):
         # fast lane
