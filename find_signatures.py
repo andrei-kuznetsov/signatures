@@ -57,6 +57,7 @@ class SignaturesFinder:
     def __find_signatures__(self):
         # Part(self.notes).show()
         intervals = self.__map_notes__(self.notes)
+        assert len(self.notes) > 0, "Empty scores"
         assert len(intervals) + 1 == len(self.notes)
         assert Interval(self.notes[0], self.notes[1]).semitones == intervals[0][0]
 
