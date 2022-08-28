@@ -4,7 +4,7 @@ from collections import namedtuple
 from benchmark.signature_benchmark import SignatureBenchmark
 
 
-AnalyzableInterval = namedtuple("AI", ("i", "d"))
+AnalyzableInterval = namedtuple("AnalyzableInterval", ("i", "d"))
 AnalyzableInterval.__str__ = lambda self: f"({self.i}, {self.d})"
 AnalyzableInterval.__repr__ = AnalyzableInterval.__str__
 
