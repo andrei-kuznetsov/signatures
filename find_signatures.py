@@ -39,8 +39,12 @@ class SignaturesFinder:
                  min_note_count=4,
                  max_note_count=10,
                  min_signature_entries=2,
-                 max_signature_entries=10,
+                 max_signature_entries=None,
                  benchmark=SignatureBenchmark()):
+        if not max_signature_entries:
+            # once every ten measures 4/4
+            max_signature_entries = min(10, max(min_signature_entries, score.quarterLength / 40))
+
         self.score = score
         self.benchmark = benchmark
         self.notes = self.__get_notes__(self.score)
