@@ -20,7 +20,6 @@ import logging
 # score1 = converter.parse('https://kern.humdrum.org/cgi-bin/ksdata?location=users/craig/classical/mozart/piano/sonata&file=sonata15-1.krn&format=kern')
 score1 = converter.parse('tinyNotation: 4/4 C4 D E8 F C4 D E8 F C4 D E8 F C4 D E8 F')
 
-
 # score1 = converter.parse('https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata10-1.krn&f=kern&o=norep')
 # score1 = converter.parse('https://kern.humdrum.org/cgi-bin/ksdata?location=users/craig/classical/chopin/prelude&file=prelude28-06.krn&format=kern')
 # score1.show()
@@ -29,7 +28,8 @@ score1 = converter.parse('tinyNotation: 4/4 C4 D E8 F C4 D E8 F C4 D E8 F C4 D E
 # сделать через threshold, выбор эталона который будет наиболее похожим на все остальные, возможно > 1
 # todo обработать разные части
 
-show_debug_scores=False
+show_debug_scores = False
+
 
 class SignaturesFinder:
     logger = logging.getLogger(__name__)
@@ -149,7 +149,7 @@ class SignaturesFinder:
         return self.__get_notes_v2__(score)
 
     # This is a skyline-like algorithm
-    def __get_notes_v2__(self, score): # TODO: for downloads/Bach/wtc1p02.krn produces 167 patterns (compare to v1)
+    def __get_notes_v2__(self, score):  # TODO: for downloads/Bach/wtc1p02.krn produces 167 patterns (compare to v1)
         notes = []
         chords = score.chordify()
         # chords.show()
@@ -159,7 +159,7 @@ class SignaturesFinder:
 
         return notes
 
-    def __get_notes_v1__(self, score): # TODO: for downloads/Bach/wtc1p02.krn produces 123 patterns (compare to v2)
+    def __get_notes_v1__(self, score):  # TODO: for downloads/Bach/wtc1p02.krn produces 123 patterns (compare to v2)
         parts = score.getElementsByClass('Part')
         if len(parts) > 1:
             print(len(parts))
