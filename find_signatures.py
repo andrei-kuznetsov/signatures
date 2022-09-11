@@ -7,7 +7,7 @@ from music21.interval import Interval
 from music21.note import Note
 from music21.stream import Stream, Part, Measure, Score
 
-from signature import Signature, AnalyzableInterval
+from signature import Signature, notes_to_analyzable_intervals
 from signature import SignatureEntry
 from benchmark.signature_benchmark import SignatureBenchmark
 from notes_utils import *
@@ -204,15 +204,7 @@ class SignaturesFinder:
 
     @staticmethod
     def __map_notes__(notes):
-        digits = []
-        for i in range(0, len(notes) - 1):
-            note1: Note = notes[i]
-            note2: Note = notes[i + 1]
-            interval = Interval(note1, note2).semitones
-            # durations = note2.duration.quarterLength - note1.duration.quarterLength
-            durations = 0 # ignore rhythm at the moment
-            digits.append(AnalyzableInterval(interval, durations))
-        return digits
+        return notes_to_analyzable_intervals(notes)
 
     def highlight_signatures(self, sig_entries):
         notes = self.notes

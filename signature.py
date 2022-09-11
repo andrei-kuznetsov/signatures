@@ -1,12 +1,24 @@
 from collections import defaultdict
 from collections import namedtuple
-
+from music21.note import *
+from music21.interval import *
 from benchmark.signature_benchmark import SignatureBenchmark
-
 
 AnalyzableInterval = namedtuple("AnalyzableInterval", ("i", "d"))
 AnalyzableInterval.__str__ = lambda self: f"({self.i}, {self.d})"
 AnalyzableInterval.__repr__ = AnalyzableInterval.__str__
+
+
+def notes_to_analyzable_intervals(notes):
+    digits = []
+    for i in range(0, len(notes) - 1):
+        note1: Note = notes[i]
+        note2: Note = notes[i + 1]
+        interval = Interval(note1, note2).semitones
+        # durations = note2.duration.quarterLength - note1.duration.quarterLength
+        durations = 0  # ignore rhythm at the moment
+        digits.append(AnalyzableInterval(interval, durations))
+    return digits
 
 
 class Signature:
