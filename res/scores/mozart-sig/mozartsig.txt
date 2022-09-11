@@ -1,0 +1,16 @@
+# Mozart signatures. David Cope, Experiments in Musical Intelligence, p. 92
+
+# a. Motive: K.330 second movement, mm. 19-20
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata10-2.krn&f=kern
+# b. Inversion: K.333 third movement, mm. 154-5
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata13-3.krn&f=kern
+# c. Augmentation: K.279 second movement, mm. 56-57 (57)
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata01-2.krn&f=kern
+# d. Diminution: K.309 second movement, mm. 4-5
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata07-2.krn&f=kern
+# e. Interpolation: K.333 first movement, mm. 133-134
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata13-1.krn&f=kern
+# f. Fragmentation: K.281 second movement, mm. 25-26
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata03-2.krn&f=kern
+# g. Order: K.545 second movement, mm. 7-9
+https://kern.humdrum.org/cgi-bin/ksdata?l=users/craig/classical/mozart/piano/sonata&file=sonata15-2.krn&f=kern
