@@ -1,20 +1,17 @@
+import logging
 import random
+from collections import OrderedDict
+from collections import defaultdict
 from datetime import datetime
 
 from music21 import *
-from music21.chord import Chord
 from music21.interval import Interval
-from music21.note import Note
-from music21.stream import Stream, Part, Measure, Score
+from music21.stream import Part
 
+import analysis.mono
+from benchmark.signature_benchmark import SignatureBenchmark
 from signature import Signature, notes_to_analyzable_intervals
 from signature import SignatureEntry
-from benchmark.signature_benchmark import SignatureBenchmark
-from notes_utils import *
-from profile_utils import profile
-from collections import defaultdict
-from collections import OrderedDict
-import logging
 
 # score1 = converter.parse('http://kern.ccarh.org/cgi-bin/ksdata?l=users/craig/classical/bach/cello&file=bwv1007-01.krn&f=kern')
 # score1 = converter.parse('https://kern.humdrum.org/cgi-bin/ksdata?location=users/craig/classical/mozart/piano/sonata&file=sonata15-1.krn&format=kern')
@@ -47,7 +44,7 @@ class SignaturesFinder:
 
         self.score = score
         self.benchmark = benchmark
-        self.notes = self.__get_notes__(self.score)
+        self.notes = analysis.mono.extract_mono(self.score)
 
         # минимальное количество нот, при котором последовательность считается сигнатурой
         self.min_interval_count = min(len(self.notes), min_note_count) - 1
@@ -144,63 +141,6 @@ class SignaturesFinder:
         self.__log__(f"  avg = {sum(sizes.values()) / len(sizes)}")
         for size, count in sizes.items():
             self.__log__(f"    len({size}) = {count} (max: {len(intervals) - size + 1})")
-
-    def __get_notes__(self, score):
-        return self.__get_notes_v2__(score)
-
-    # This is a skyline-like algorithm
-    def __get_notes_v2__(self, score):  # TODO: for downloads/Bach/wtc1p02.krn produces 167 patterns (compare to v1)
-        notes = []
-        chords = score.chordify()
-        # chords.show()
-        for chord in chords.recurse().getElementsByClass('Chord'):
-            notes.append(sorted(chord.notes)[-1])
-        self.debug_show_notes(notes)
-
-        return notes
-
-    def __get_notes_v1__(self, score):  # TODO: for downloads/Bach/wtc1p02.krn produces 123 patterns (compare to v2)
-        parts = score.getElementsByClass('Part')
-        if len(parts) > 1:
-            print(len(parts))
-            raise AssertionError()
-        elif len(parts) == 1:
-            part = parts[0]
-        else:
-            part = score
-
-        measures = part.getElementsByClass('Measure')
-
-        notes = []
-        for measure in measures:
-            voices = measure.voices
-            if voices:
-                top_voice = voices[0]  # todo: check that this is really a top voice
-                notes_and_chords = top_voice.notes  # todo: rests
-            else:
-                notes_and_chords = measure.notes
-
-            for note in notes_and_chords:
-                if isinstance(note, Note):
-                    notes.append(note)
-                elif isinstance(note, Chord):
-                    notes.append(Note(note.root()))
-                    raise AssertionError()
-                else:
-                    self.__log__('Unknown type: {}'.format(note))
-                    raise AssertionError()
-
-        # self.debug_show_notes(notes)
-        return notes
-
-    @staticmethod
-    def debug_show_notes(notes):
-        if not show_debug_scores:
-            return
-        # score = Score(notes) # todo: see how beautiful it looks for downloads/Bach/wtc1p02.krn
-        score = Score()
-        score.append(notes)
-        score.show()
 
     @staticmethod
     def __map_notes__(notes):
